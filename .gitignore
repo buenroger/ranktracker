@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.so
+.Python
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+.env
+
+# Credenciales y tokens — NUNCA subir
+gsc_credentials.json
+gsc_token.json
+*.json.bak
+
+# Base de datos local
+*.db
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
