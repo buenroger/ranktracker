@@ -18,6 +18,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.routers import projects, keywords, competitors, alerts, ingest
+from config.settings import settings
 
 app = FastAPI(
     title="Rank Tracker API",
@@ -27,10 +28,9 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# CORS — ajusta origins en producción
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
