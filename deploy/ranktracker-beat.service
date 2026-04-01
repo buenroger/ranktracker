@@ -1,0 +1,21 @@
+[Unit]
+Description=Rank Tracker — Celery Beat (scheduler)
+After=network.target redis.service
+Wants=redis.service
+
+[Service]
+Type=simple
+User=ranktracker
+Group=ranktracker
+WorkingDirectory=/var/www/ranktracker
+EnvironmentFile=/var/www/ranktracker/.env
+ExecStart=/var/www/ranktracker/.venv/bin/celery \
+    -A collector.celery_app beat \
+    --loglevel=info \
+    --logfile=/var/log/ranktracker/celery-beat.log \
+    --pidfile=/var/run/ranktracker/celery-beat.pid
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

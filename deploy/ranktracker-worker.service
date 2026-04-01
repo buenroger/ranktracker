@@ -1,0 +1,24 @@
+[Unit]
+Description=Rank Tracker — Celery Worker
+After=network.target redis.service mysql.service
+Wants=redis.service mysql.service
+
+[Service]
+Type=forking
+User=ranktracker
+Group=ranktracker
+WorkingDirectory=/var/www/ranktracker
+EnvironmentFile=/var/www/ranktracker/.env
+ExecStart=/var/www/ranktracker/.venv/bin/celery \
+    -A collector.celery_app worker \
+    --loglevel=info \
+    --logfile=/var/log/ranktracker/celery-worker.log \
+    --pidfile=/var/run/ranktracker/celery-worker.pid \
+    --detach
+ExecStop=/var/www/ranktracker/.venv/bin/celery \
+    -A collector.celery_app control shutdown
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
