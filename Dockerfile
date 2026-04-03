@@ -16,10 +16,9 @@ RUN pip install --no-cache-dir -r requirements.txt gunicorn
 # Código fuente
 COPY . .
 
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 8000
 
-CMD ["gunicorn", "api.main:app", \
-     "--worker-class", "uvicorn.workers.UvicornWorker", \
-     "--bind", "0.0.0.0:8000", \
-     "--workers", "2", \
-     "--timeout", "120"]
+ENTRYPOINT ["/entrypoint.sh"]
