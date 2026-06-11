@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { getProjects, getProjectSummary, getProjectKeywords, triggerFullIngest } from '../api/client'
-import { TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react'
+import { getProjects, getProjectSummary, getProjectKeywords, triggerFullIngest, createProject } from '../api/client'
+import { TrendingUp, TrendingDown, Minus, RefreshCw, Plus } from 'lucide-react'
 
 const s = {
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 },
@@ -25,6 +25,17 @@ const s = {
     display: 'inline-block', padding: '2px 8px', borderRadius: 6,
     fontSize: 12, fontWeight: 600, background: color + '22', color,
   }),
+  formCard: {
+    background: '#161b27', border: '1px solid #1e2636', borderRadius: 12,
+    padding: '20px 20px', marginBottom: 28,
+  },
+  cardTitle: { fontSize: 15, fontWeight: 600, color: '#f1f5f9', marginBottom: 16 },
+  formRow: { display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' },
+  input: {
+    background: '#1e2636', color: '#e2e8f0', border: '1px solid #2d3748',
+    borderRadius: 8, padding: '6px 12px', fontSize: 14,
+  },
+  error: { color: '#f87171', fontSize: 13, marginTop: 8 },
 }
 
 function KPI({ label, value, color = '#f1f5f9' }) {
@@ -50,6 +61,43 @@ export default function Overview() {
   const [keywords, setKeywords] = useState([])
   const [loading, setLoading] = useState(false)
   const [ingestStatus, setIngestStatus] = useState(null)
+  const [showNewProject, setShowNewProject] = useState(false)
+  const [newProject, setNewProject] = useState({
+    name: '', domain: '', country: 'ES', language: 'es', device: 'desktop', gsc_site_url: '',
+  })
+  const [newProjectError, setNewProjectError] = useState(null)
+
+  function refreshProjects(selectId) {
+    return getProjects().then((data) => {
+      setProjects(data)
+      if (selectId) {
+        setSelectedId(selectId)
+      } else if (data.length > 0 && !selectedId) {
+        setSelectedId(data[0].id)
+      }
+      return data
+    })
+  }
+
+  async function handleCreateProject(e) {
+    e.preventDefault()
+    setNewProjectError(null)
+    if (!newProject.name.trim() || !newProject.domain.trim()) {
+      setNewProjectError('Nombre y dominio son obligatorios')
+      return
+    }
+    try {
+      const created = await createProject({
+        ...newProject,
+        gsc_site_url: newProject.gsc_site_url.trim() || null,
+      })
+      setNewProject({ name: '', domain: '', country: 'ES', language: 'es', device: 'desktop', gsc_site_url: '' })
+      setShowNewProject(false)
+      await refreshProjects(created.id)
+    } catch (err) {
+      setNewProjectError(err.message)
+    }
+  }
 
   useEffect(() => {
     getProjects().then((data) => {
@@ -85,10 +133,64 @@ export default function Overview() {
     <div>
       <div style={s.header}>
         <h1 style={s.h1}>Overview</h1>
-        <button style={s.btn} onClick={handleIngest}>
-          <RefreshCw size={14} /> Ingestar ahora
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button style={s.btn} onClick={() => setShowNewProject((v) => !v)}>
+            <Plus size={14} /> Nuevo proyecto
+          </button>
+          <button style={s.btn} onClick={handleIngest}>
+            <RefreshCw size={14} /> Ingestar ahora
+          </button>
+        </div>
       </div>
+
+      {showNewProject && (
+        <div style={s.formCard}>
+          <div style={s.cardTitle}>Nuevo proyecto</div>
+          <form onSubmit={handleCreateProject} style={s.formRow}>
+            <input
+              style={s.input}
+              placeholder="Nombre"
+              value={newProject.name}
+              onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
+            />
+            <input
+              style={s.input}
+              placeholder="dominio.com"
+              value={newProject.domain}
+              onChange={(e) => setNewProject({ ...newProject, domain: e.target.value })}
+            />
+            <input
+              style={{ ...s.input, width: 70 }}
+              placeholder="País"
+              value={newProject.country}
+              onChange={(e) => setNewProject({ ...newProject, country: e.target.value.toUpperCase() })}
+            />
+            <input
+              style={{ ...s.input, width: 70 }}
+              placeholder="Idioma"
+              value={newProject.language}
+              onChange={(e) => setNewProject({ ...newProject, language: e.target.value.toLowerCase() })}
+            />
+            <select
+              style={s.input}
+              value={newProject.device}
+              onChange={(e) => setNewProject({ ...newProject, device: e.target.value })}
+            >
+              <option value="desktop">Desktop</option>
+              <option value="mobile">Mobile</option>
+              <option value="tablet">Tablet</option>
+            </select>
+            <input
+              style={{ ...s.input, minWidth: 240 }}
+              placeholder="GSC site URL (opcional, ej. sc-domain:dominio.com)"
+              value={newProject.gsc_site_url}
+              onChange={(e) => setNewProject({ ...newProject, gsc_site_url: e.target.value })}
+            />
+            <button type="submit" style={s.btn}><Plus size={14} /> Crear</button>
+          </form>
+          {newProjectError && <p style={s.error}>{newProjectError}</p>}
+        </div>
+      )}
 
       {ingestStatus && (
         <div style={{ background: '#1e3a5f', color: '#60a5fa', padding: '10px 16px', borderRadius: 8, marginBottom: 20, fontSize: 13 }}>

@@ -6,6 +6,9 @@
 
 set -e
 
+echo "Comprobando/inicializando esquema de base de datos..."
+python -m core.init_db
+
 case "${APP_MODE:-api}" in
   worker)
     echo "Iniciando Celery Worker..."

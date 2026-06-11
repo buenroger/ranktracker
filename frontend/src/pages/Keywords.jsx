@@ -3,7 +3,8 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
-import { getProjects, getProjectKeywords, getKeywordHistory } from '../api/client'
+import { Plus, Trash2 } from 'lucide-react'
+import { getProjects, getProjectKeywords, getKeywordHistory, createKeyword, addProjectKeyword, removeProjectKeyword } from '../api/client'
 
 const s = {
   h1: { fontSize: 24, fontWeight: 700, color: '#f1f5f9', marginBottom: 28 },
@@ -21,6 +22,25 @@ const s = {
     padding: '24px 20px',
   },
   chartTitle: { fontSize: 15, fontWeight: 600, color: '#f1f5f9', marginBottom: 20 },
+  formCard: {
+    background: '#161b27', border: '1px solid #1e2636', borderRadius: 12,
+    padding: '20px 20px', marginBottom: 24,
+  },
+  cardTitle: { fontSize: 15, fontWeight: 600, color: '#f1f5f9', marginBottom: 16 },
+  input: {
+    background: '#1e2636', color: '#e2e8f0', border: '1px solid #2d3748',
+    borderRadius: 8, padding: '6px 12px', fontSize: 14,
+  },
+  btn: {
+    display: 'flex', alignItems: 'center', gap: 6,
+    padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
+    background: '#1e3a5f', color: '#60a5fa', fontSize: 13, fontWeight: 600,
+  },
+  iconBtn: {
+    background: 'transparent', border: 'none', cursor: 'pointer', color: '#f87171',
+    display: 'flex', alignItems: 'center',
+  },
+  error: { color: '#f87171', fontSize: 13, marginTop: 8 },
 }
 
 const COLORS = ['#60a5fa', '#a78bfa', '#34d399', '#fbbf24', '#f87171']
@@ -47,6 +67,11 @@ export default function Keywords() {
   const [loadingKw, setLoadingKw] = useState(false)
   const [loadingChart, setLoadingChart] = useState(false)
 
+  const [newKeyword, setNewKeyword] = useState('')
+  const [newTag, setNewTag] = useState('')
+  const [newTarget, setNewTarget] = useState('')
+  const [addError, setAddError] = useState(null)
+
   useEffect(() => {
     getProjects().then((data) => {
       setProjects(data)
@@ -54,15 +79,52 @@ export default function Keywords() {
     })
   }, [])
 
-  useEffect(() => {
-    if (!selectedProject) return
+  function refreshKeywords(projectId) {
     setLoadingKw(true)
-    getProjectKeywords(selectedProject.id, { page_size: 100 })
+    return getProjectKeywords(projectId, { page_size: 100 })
       .then(setKeywords)
       .finally(() => setLoadingKw(false))
+  }
+
+  useEffect(() => {
+    if (!selectedProject) return
+    refreshKeywords(selectedProject.id)
     setSelectedPk(null)
     setHistory([])
   }, [selectedProject])
+
+  async function handleAddKeyword(e) {
+    e.preventDefault()
+    setAddError(null)
+    if (!newKeyword.trim()) return
+    try {
+      const kw = await createKeyword({
+        keyword: newKeyword.trim(),
+        language: selectedProject.language,
+        country: selectedProject.country,
+      })
+      await addProjectKeyword(selectedProject.id, {
+        keyword_id: kw.id,
+        tag: newTag.trim() || null,
+        target_position: newTarget ? Number(newTarget) : null,
+      })
+      setNewKeyword('')
+      setNewTag('')
+      setNewTarget('')
+      refreshKeywords(selectedProject.id)
+    } catch (err) {
+      setAddError(err.message)
+    }
+  }
+
+  async function handleRemoveKeyword(pkId) {
+    await removeProjectKeyword(selectedProject.id, pkId)
+    if (selectedPk?.project_keyword_id === pkId) {
+      setSelectedPk(null)
+      setHistory([])
+    }
+    refreshKeywords(selectedProject.id)
+  }
 
   useEffect(() => {
     if (!selectedProject || !selectedPk) return
@@ -100,13 +162,43 @@ export default function Keywords() {
         </select>
       </div>
 
+      {selectedProject && (
+        <div style={s.formCard}>
+          <div style={s.cardTitle}>Añadir keyword al proyecto</div>
+          <form onSubmit={handleAddKeyword} style={{ ...s.row, marginBottom: 0 }}>
+            <input
+              style={{ ...s.input, minWidth: 220 }}
+              placeholder="Keyword"
+              value={newKeyword}
+              onChange={(e) => setNewKeyword(e.target.value)}
+            />
+            <input
+              style={{ ...s.input, width: 140 }}
+              placeholder="Tag (opcional)"
+              value={newTag}
+              onChange={(e) => setNewTag(e.target.value)}
+            />
+            <input
+              style={{ ...s.input, width: 140 }}
+              type="number"
+              min={1}
+              placeholder="Posición objetivo"
+              value={newTarget}
+              onChange={(e) => setNewTarget(e.target.value)}
+            />
+            <button type="submit" style={s.btn}><Plus size={14} /> Añadir</button>
+          </form>
+          {addError && <p style={s.error}>{addError}</p>}
+        </div>
+      )}
+
       {loadingKw && <p style={{ color: '#64748b' }}>Cargando keywords…</p>}
 
       {!loadingKw && (
         <table style={s.table}>
           <thead>
             <tr>
-              {['Keyword', 'Posición actual', 'Cambio', 'Tag'].map((h) => (
+              {['Keyword', 'Posición actual', 'Cambio', 'Tag', ''].map((h) => (
                 <th key={h} style={s.th}>{h}</th>
               ))}
             </tr>
@@ -118,16 +210,20 @@ export default function Keywords() {
                 <tr
                   key={kw.project_keyword_id}
                   style={isSelected ? s.selectedRow : {}}
-                  onClick={() => setSelectedPk(kw)}
                 >
-                  <td style={{ ...s.td, color: isSelected ? '#60a5fa' : '#f1f5f9', fontWeight: 500 }}>
+                  <td style={{ ...s.td, color: isSelected ? '#60a5fa' : '#f1f5f9', fontWeight: 500 }} onClick={() => setSelectedPk(kw)}>
                     {kw.keyword}
                   </td>
-                  <td style={{ ...s.td, fontWeight: 600 }}>{kw.current_position ?? '—'}</td>
-                  <td style={{ ...s.td, color: kw.position_change > 0 ? '#22c55e' : kw.position_change < 0 ? '#ef4444' : '#64748b' }}>
+                  <td style={{ ...s.td, fontWeight: 600 }} onClick={() => setSelectedPk(kw)}>{kw.current_position ?? '—'}</td>
+                  <td style={{ ...s.td, color: kw.position_change > 0 ? '#22c55e' : kw.position_change < 0 ? '#ef4444' : '#64748b' }} onClick={() => setSelectedPk(kw)}>
                     {kw.position_change !== null ? (kw.position_change > 0 ? '+' : '') + kw.position_change : '—'}
                   </td>
-                  <td style={s.td}>{kw.tag ?? '—'}</td>
+                  <td style={s.td} onClick={() => setSelectedPk(kw)}>{kw.tag ?? '—'}</td>
+                  <td style={s.td}>
+                    <button style={s.iconBtn} onClick={() => handleRemoveKeyword(kw.project_keyword_id)} title="Quitar del proyecto">
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
                 </tr>
               )
             })}

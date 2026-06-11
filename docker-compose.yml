@@ -1,0 +1,107 @@
+version: "3.8"
+
+x-backend-env: &backend-env
+  DB_HOST: mysql
+  DB_PORT: "3306"
+  DB_NAME: ${DB_NAME:-ranktracker}
+  DB_USER: ${DB_USER:-ranktracker}
+  DB_PASSWORD: ${DB_PASSWORD:-cambia_esto}
+  REDIS_URL: redis://redis:6379/0
+  GSC_CREDENTIALS_FILE: /app/secrets/gsc_credentials.json
+  GSC_TOKEN_FILE: /app/secrets/gsc_token.json
+  GSC_LOOKBACK_DAYS: ${GSC_LOOKBACK_DAYS:-3}
+  DATAFORSEO_LOGIN: ${DATAFORSEO_LOGIN:-}
+  DATAFORSEO_PASSWORD: ${DATAFORSEO_PASSWORD:-}
+  SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  ALERT_FROM_EMAIL: ${ALERT_FROM_EMAIL:-ranktracker@example.com}
+  CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:8080"]}
+  DEBUG: ${DEBUG:-false}
+  APP_ENV: ${APP_ENV:-production}
+
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-cambia_root}
+      MYSQL_DATABASE: ${DB_NAME:-ranktracker}
+      MYSQL_USER: ${DB_USER:-ranktracker}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-cambia_esto}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-cambia_root}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+  api:
+    build: .
+    restart: unless-stopped
+    environment:
+      <<: *backend-env
+      APP_MODE: api
+    volumes:
+      - gsc_secrets:/app/secrets
+    ports:
+      - "8000:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  worker:
+    build: .
+    restart: unless-stopped
+    environment:
+      <<: *backend-env
+      APP_MODE: worker
+    volumes:
+      - gsc_secrets:/app/secrets
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  beat:
+    build: .
+    restart: unless-stopped
+    environment:
+      <<: *backend-env
+      APP_MODE: beat
+    volumes:
+      - gsc_secrets:/app/secrets
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
+volumes:
+  mysql_data:
+  redis_data:
+  gsc_secrets:

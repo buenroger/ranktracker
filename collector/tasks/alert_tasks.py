@@ -4,7 +4,7 @@ Tasks Celery para detección de cambios de posición y envío de alertas.
 
 import logging
 import smtplib
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from email.mime.text import MIMEText
 from typing import Optional
 
@@ -64,7 +64,7 @@ def _check_and_fire(db, alert: Alert) -> bool:
 
     event = AlertEvent(
         alert_id=alert.id,
-        triggered_at=date.today(),
+        triggered_at=datetime.now(),
         previous_position=previous,
         current_position=current,
         message=message,
