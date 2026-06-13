@@ -1,0 +1,23 @@
+[Unit]
+Description=Rank Tracker — FastAPI (Gunicorn + Uvicorn)
+After=network.target mysql.service redis.service
+Wants=mysql.service redis.service
+
+[Service]
+Type=notify
+User=ranktracker
+Group=ranktracker
+WorkingDirectory=/var/www/ranktracker
+EnvironmentFile=/var/www/ranktracker/.env
+ExecStart=/var/www/ranktracker/.venv/bin/gunicorn \
+    --config /var/www/ranktracker/deploy/gunicorn.conf.py \
+    api.main:app
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

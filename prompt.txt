@@ -1,0 +1,51 @@
+Perfecto. Esos son exactamente los archivos de `api/` — los routers y los schemas. Te falta todo lo demás:
+
+**Lo que tienes:**
+```
+api/main.py
+api/routers/projects.py
+api/routers/keywords.py
+api/routers/competitors.py
+api/routers/alerts.py
+api/routers/ingest.py
+api/schemas/__init__.py
+api/dependencies/__init__.py
+```
+
+**Lo que falta:**
+```
+config/settings.py
+core/models.py
+core/database.py
+collector/celery_app.py
+collector/sources/gsc_client.py
+collector/sources/dataforseo_client.py
+collector/tasks/gsc_tasks.py
+collector/tasks/dataforseo_tasks.py
+collector/tasks/alert_tasks.py
+requirements.txt
+.env.example
+frontend/ (todo)
+schema.sql
+```
+
+---
+
+El prompt para Claude Code sería:
+
+> Tengo un proyecto rank tracker con FastAPI. Ya tengo toda la capa `api/` completa (main.py, routers, schemas, dependencies). Necesito que generes todo lo que falta:
+>
+> - `config/settings.py` — pydantic-settings con DB, Redis, GSC y DataForSEO
+> - `core/models.py` — SQLAlchemy: projects, keywords, project_keywords, rankings, competitors, competitor_rankings, alerts, alert_events
+> - `core/database.py` — engine y context manager get_db
+> - `collector/celery_app.py` — Celery + beat schedule (GSC 06:00, DataForSEO 07:00, alertas cada hora)
+> - `collector/sources/gsc_client.py` — cliente Google Search Console con paginación y retry
+> - `collector/sources/dataforseo_client.py` — cliente DataForSEO SERP con extracción de competidores
+> - `collector/tasks/gsc_tasks.py` — tasks Celery para ingesta GSC
+> - `collector/tasks/dataforseo_tasks.py` — tasks Celery para DataForSEO + competitor_rankings
+> - `collector/tasks/alert_tasks.py` — detección de cambios de posición y envío de alertas
+> - `schema.sql` — schema MySQL completo con las 8 tablas y 2 vistas
+> - `requirements.txt` y `.env.example`
+> - `frontend/` — React + Vite + Recharts, dashboard oscuro con sidebar, página Overview con KPIs y tabla de keywords, página Keywords con gráfico de evolución
+
+Eso es todo lo que necesita saber. Con los archivos de `api/` ya presentes en el disco, Claude Code verá la estructura y generará el resto siendo consistente con lo que ya existe.

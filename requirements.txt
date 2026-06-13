@@ -1,0 +1,32 @@
+# =============================================================================
+# Rank Tracker — dependencias Python
+# =============================================================================
+
+# --- API ---
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+pydantic==2.10.1
+pydantic-settings==2.6.1
+
+# --- Base de datos ---
+sqlalchemy==2.0.36
+pymysql==1.1.1
+cryptography==43.0.3      # requerido por pymysql para SSL
+
+# --- Celery / Redis ---
+celery==5.4.0
+redis==5.2.0
+kombu==5.4.2
+
+# --- Google Search Console ---
+google-api-python-client==2.154.0
+google-auth==2.36.0
+google-auth-oauthlib==1.2.1
+google-auth-httplib2==0.2.0
+
+# --- DataForSEO / HTTP ---
+requests==2.32.3
+urllib3==2.2.3
+
+# --- Utilidades ---
+python-dotenv==1.0.1
